@@ -1,47 +1,37 @@
+import builtins
+import os
 import torch
-from datasets import load_dataset
+from datasets import load_from_disk
 from transformers import (
     AutoModelForCausalLM,
-    AutoTokenizer,
+    BitsAndBytesConfig,
 )
 from peft import LoraConfig
 from trl import SFTTrainer
 
-from utils import preprocess_dataset, find_all_linear_names, get_local_rank
-from args import parse_args
+from utils import find_all_linear_names, get_local_rank, prepare_tokenizer, get_local_rank
+from args import parse_args, print_args
+
+
+def print(*args, **kwargs):
+    if get_local_rank() == 0 and not kwargs.get("all_ranks", False):
+        builtins.print(*args, **kwargs)
 
 
 def main():
     # Parse args
     args = parse_args()
 
+    print_args(args, print=print)
+
+    if not os.path.exists("./prepared"):
+        raise ValueError("Dataset not prepared. Did you run `python prepare.py` first?")
+
+    # Load dataset
+    dataset = load_from_disk("./prepared")
+
     # Load LLaMA tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(args.hf.model_name_or_path)
-
-    # Add our prompt tokens
-    tokenizer.add_tokens(["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"])
-    tokenizer.add_special_tokens(
-        {
-            "pad_token": tokenizer.eos_token,
-            "cls_token": tokenizer.eos_token,
-            "sep_token": tokenizer.eos_token,
-            "mask_token": tokenizer.eos_token,
-            "additional_special_tokens": ["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"],
-        }
-    )
-
-    tokenizer.padding_side = "right"  # Fix weird overflow issue with fp16 training
-
-    ## Preprocess dataset
-    dataset = load_dataset("gsm8k", "main", split="train")
-
-    if args.task.clear_data_cache:
-        dataset.cleanup_cache_files()
-
-    dataset, report = preprocess_dataset(tokenizer, dataset, args.trl.max_seq_length)
-
-    print("Dataset report:", report)
-
+    tokenizer = prepare_tokenizer(args.hf.model_name_or_path)
     # Check GPU compatibility with bfloat16
     if args.bnb.bnb_4bit_compute_dtype == torch.float16 and args.bnb.load_in_4bit:
         major, _ = torch.cuda.get_device_capability()
@@ -53,11 +43,14 @@ def main():
     device_map = None
     if args.lora.enable_lora:
         device_map = {get_local_rank(): ""}
+        print(f"Device map: {device_map}", all_ranks=True)
+
+    quantization_config = BitsAndBytesConfig(**args.bnb.__dict__)
 
     # Load base model
     model = AutoModelForCausalLM.from_pretrained(
         args.hf.model_name_or_path,
-        quantization_config=args.bnb,
+        quantization_config=quantization_config,
         device_map=device_map,
     )
 
@@ -80,10 +73,10 @@ def main():
         train_dataset=dataset,
         peft_config=peft_config if args.lora.enable_lora else None,
         dataset_text_field="text",
-        max_seq_length=args.trl.max_seq_length,
+        max_seq_length=args.sft.max_seq_length,
         tokenizer=tokenizer,
         args=args.trainer,
-        packing=args.trl.packing,
+        packing=args.sft.packing,
     )
 
     # Train model

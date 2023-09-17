@@ -2,7 +2,7 @@ import os
 import sys
 
 from args import parse_args
-from utils import get_accelerate_config, save_temp_config
+from config import get_accelerate_config, save_temp_config
 
 
 def main():
@@ -23,6 +23,9 @@ def main():
     )
 
     accelerate_config_path = save_temp_config(accelerate_config, "accelerate", args.task.tmp_dir, format="yaml")
+
+    if not os.path.exists("./prepared") or args.task.clear_data_cache:
+        os.system("python prepare.py")
 
     command = f"accelerate launch --config_file {accelerate_config_path} {args.task.task}.py {' '.join(sys.argv[1:])}"
 

@@ -3,11 +3,18 @@ project: lora-cutoff
 model_name_or_path: meta-llama/Llama-2-7b-hf
 
 ################################################################################
-# TrainingArguments parameters
+# Distributed training parameters
 ################################################################################
 
+# Whether to use distributed training
+enable_distributed: False
+
 # Number of GPUs to use
-num_processes: 8
+num_processes: 4
+
+################################################################################
+# Trainer parameters
+################################################################################
 
 # Output directory where the model predictions and checkpoints will be stored
 output_dir: ./results
@@ -64,6 +71,8 @@ logging_steps: .1
 
 gradient_accumulation_steps: 4
 
+report_to: tensorboard
+
 ################################################################################
 # DeepSpeed parameters
 ################################################################################
@@ -76,7 +85,7 @@ stage: 3
 offload: False
 
 ################################################################################
-# LoraConfig parameters
+# LoRA parameters
 ################################################################################
 
 # Whether to use LoRA
@@ -92,7 +101,7 @@ lora_alpha: 16
 lora_dropout: 0.05
 
 ################################################################################
-# BitsAndBytesConfig parameters
+# Bits and Bytes
 ################################################################################
 
 # Activate 8-bit precision base model loading
@@ -108,7 +117,7 @@ bnb_4bit_compute_dtype: float16
 bnb_4bit_quant_type: nf4
 
 # Activate nested quantization for 4-bit base models (double quantization)
-use_nested_quant: True
+bnb_4bit_use_double_quant: True
 
 ################################################################################
 # SFT parameters

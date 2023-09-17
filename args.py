@@ -1,10 +1,11 @@
 import sys
 import yaml
 from transformers import (
-    BitsAndBytesConfig,
     HfArgumentParser,
     TrainingArguments,
 )
+
+from typing import List, Union, NamedTuple
 
 from dataclasses import dataclass, field
 
@@ -58,7 +59,69 @@ class LoraArguments:
 
 
 @dataclass
-class TrlArguments:
+class BitsAndBytesArguments:
+    # load_in_8bit=False,
+    load_in_8bit: bool = field(default=False, metadata={"help": "Whether to load in 8-bit"})
+
+    # load_in_4bit=False,
+    load_in_4bit: bool = field(default=False, metadata={"help": "Whether to load in 4-bit"})
+
+    # llm_int8_threshold=6.0,
+    llm_int8_threshold: float = field(
+        default=6.0,
+        metadata={
+            "help": "Any hidden states value that is above this threshold will be considered an outlier and the operation on those values will be done in fp16."
+        },
+    )
+
+    llm_int8_skip_modules: Union[List[str], None] = field(
+        default=None,
+        metadata={"help": "An explicit list of the modules that we do not want to convert in 8-bit."},
+    )
+
+    # llm_int8_enable_fp32_cpu_offload=False,
+    llm_int8_enable_fp32_cpu_offload: bool = field(
+        default=False,
+        metadata={
+            "help": "If you want to split your model in different parts and run some parts in int8 on GPU and some parts in fp32 on CPU, you can use this flag. Note that the int8 operations will not be run on CPU."
+        },
+    )
+
+    # llm_int8_has_fp16_weight=False,
+    llm_int8_has_fp16_weight: bool = field(
+        default=False,
+        metadata={
+            "help": "This is useful for fine-tuning as the weights do not have to be converted back and forth for the backward pass."
+        },
+    )
+
+    # bnb_4bit_compute_dtype=None,
+    bnb_4bit_compute_dtype: Union[str, None] = field(
+        default=None,
+        metadata={
+            "help": "This sets the computational type which might be different than the input type. For example, inputs might be fp32, but computation can be set to bf16 for speedups."
+        },
+    )
+
+    # bnb_4bit_quant_type="fp4",
+    bnb_4bit_quant_type: str = field(
+        default="fp4",
+        metadata={
+            "help": "This sets the quantization data type in the bnb.nn.Linear4Bit layers. Options are FP4 and NF4 data types which are specified by `fp4` or `nf4`."
+        },
+    )
+
+    # bnb_4bit_use_double_quant=False,
+    bnb_4bit_use_double_quant: bool = field(
+        default=False,
+        metadata={
+            "help": "This flag is used for nested quantization where the quantization constants from the first quantization are quantized again."
+        },
+    )
+
+
+@dataclass
+class SFTArguments:
     max_seq_length: int = field(
         default=2048,
         metadata={"help": "Maximum sequence length to use for training"},
@@ -69,17 +132,16 @@ class TrlArguments:
     )
 
 
-@dataclass
-class MachineLearningArguments:
-    task: TaskArguments = field(default_factory=TaskArguments)
-    hf: HuggingFaceHubArguments = field(default_factory=HuggingFaceHubArguments)
-    dist: DistributedArguments = field(default_factory=DistributedArguments)
-    trainer: TrainingArguments = field(default_factory=TrainingArguments)
-    trl: TrlArguments = field(default_factory=TrlArguments)
-    ds: DeepSpeedArguments = field(default_factory=DeepSpeedArguments)
-    lora: LoraArguments = field(default_factory=LoraArguments)
-    bnb: BitsAndBytesConfig = field(default_factory=BitsAndBytesConfig)
-    nargs: list = field(default_factory=list)
+class MachineLearningArguments(NamedTuple):
+    task: TaskArguments
+    hf: HuggingFaceHubArguments
+    dist: DistributedArguments
+    trainer: TrainingArguments
+    sft: SFTArguments
+    ds: DeepSpeedArguments
+    lora: LoraArguments
+    bnb: BitsAndBytesArguments
+    nargs: list
 
 
 def parse_args() -> MachineLearningArguments:
@@ -101,10 +163,10 @@ def parse_args() -> MachineLearningArguments:
             HuggingFaceHubArguments,
             DistributedArguments,
             TrainingArguments,
-            TrlArguments,
+            SFTArguments,
             DeepSpeedArguments,
             LoraArguments,
-            BitsAndBytesConfig,
+            BitsAndBytesArguments,
         )
     )
 
@@ -114,3 +176,11 @@ def parse_args() -> MachineLearningArguments:
     )
 
     return MachineLearningArguments(task, hf, trainer, dist, trl, ds, lora, bnb, nargs)
+
+
+def print_args(args: MachineLearningArguments, print=print):
+    for arg_group in args:
+        if not isinstance(arg_group, list):
+            print(arg_group.__class__.__name__, arg_group.__dict__)
+        else:
+            print("UnknownArguments", arg_group)
