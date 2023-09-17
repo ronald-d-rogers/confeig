@@ -32,6 +32,7 @@ def main():
 
     # Load LLaMA tokenizer
     tokenizer = prepare_tokenizer(args.hf.model_name_or_path)
+
     # Check GPU compatibility with bfloat16
     if args.bnb.bnb_4bit_compute_dtype == torch.float16 and args.bnb.load_in_4bit:
         major, _ = torch.cuda.get_device_capability()
