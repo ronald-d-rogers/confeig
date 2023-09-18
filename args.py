@@ -170,7 +170,7 @@ class BitsAndBytesArguments(Arguments):
             if major >= 8:
                 # yellow
                 print("\033[93m", end="")
-                print("Your GPU supports bfloat16: accelerate training with bnb_4bit_compute_dtype=bfloat16")
+                print("Your GPU supports bfloat16: accelerate training with `bnb_4bit_compute_dtype=bfloat16`")
                 print("\033[0m", end="")
 
 
@@ -249,7 +249,7 @@ class MachineLearningArguments:
             major, _ = torch.cuda.get_device_capability()
             if major >= 8:
                 print("\033[93m", end="")
-                print("Your GPU supports bfloat16: accelerate training with bf16=True")
+                print("Your GPU supports bfloat16: accelerate training with `bf16=True`")
                 print("\033[0m", end="")
 
 
