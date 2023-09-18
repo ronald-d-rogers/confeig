@@ -17,7 +17,8 @@ from trl import SFTTrainer
 
 
 def print(*args, **kwargs):
-    if get_local_rank() == 0 and not kwargs.get("all_ranks", False):
+    if get_local_rank() == 0 or kwargs.get("all_ranks", False):
+        kwargs.pop("all_ranks", None)
         builtins.print(*args, **kwargs)
 
 
@@ -167,7 +168,10 @@ class BitsAndBytesArguments(Arguments):
         if self.load_in_4bit and self.bnb_4bit_compute_dtype == torch.float16:
             major, _ = torch.cuda.get_device_capability()
             if major >= 8:
+                # yellow
+                print("\033[93m", end="")
                 print("Your GPU supports bfloat16: accelerate training with bnb_4bit_compute_dtype=bfloat16")
+                print("\033[0m", end="")
 
 
 @dataclass
@@ -208,19 +212,27 @@ class MachineLearningArguments:
 
     def model(self, **kwargs) -> AutoModelForCausalLM:
         device_map = None
-        if self.lora.enable_lora:
-            device_map = {get_local_rank(): ""}
-        print(f"Device map: {device_map}", all_ranks=True)
-        return self.hf.model(quantization_config=self.bnb.config(), device_map=device_map, **kwargs)
+        if self.lora.enable_lora and not self.ds.enable_deepspeed:
+            device_map = {"": get_local_rank()}
+            print(f"Device map: {device_map}", all_ranks="true")
+        quantization_config = self.bnb.config() if self.bnb.load_in_4bit or self.bnb.load_in_8bit else None
+        return self.hf.model(quantization_config=quantization_config, device_map=device_map, **kwargs)
 
-    def sft_trainer(self, model, tokenizer, dataset, **kwargs) -> SFTTrainer:
+    def sft_trainer(self, model, tokenizer, train_dataset, **kwargs) -> SFTTrainer:
+        if self.lora.enable_lora and self.dist.enable_distributed:
+            print("\033[93m", end="")
+            print(
+                "Automatically setting `ddp_find_unused_parameters=False` when using LoRA with DistributedDataParallel."
+            )
+            print("\033[0m", end="")
+            self.trainer.ddp_find_unused_parameters = False
+
         return SFTTrainer(
             model=model,
-            train_dataset=dataset,
-            peft_config=self.lora.config(model) if self.lora.enable_lora else None,
-            dataset_text_field="text",
-            max_seq_length=self.sft.max_seq_length,
             tokenizer=tokenizer,
+            train_dataset=train_dataset,
+            peft_config=self.lora.config(model) if self.lora.enable_lora else None,
+            max_seq_length=self.sft.max_seq_length,
             args=self.trainer,
             packing=self.sft.packing,
             **kwargs,
@@ -231,7 +243,9 @@ class MachineLearningArguments:
         if self.trainer.fp16:
             major, _ = torch.cuda.get_device_capability()
             if major >= 8:
+                print("\033[93m", end="")
                 print("Your GPU supports bfloat16: accelerate training with bf16=True")
+                print("\033[0m", end="")
 
 
 def parse_args() -> MachineLearningArguments:

@@ -36,6 +36,7 @@ def main():
     # Set supervised fine-tuning parameters
     trainer = args.sft_trainer(
         model=model,
+        tokenizer=tokenizer,
         train_dataset=dataset,
         dataset_text_field="text",
     )

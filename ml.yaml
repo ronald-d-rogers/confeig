@@ -7,7 +7,7 @@ pretrained_model_name_or_path: meta-llama/Llama-2-7b-hf
 ################################################################################
 
 # Whether to use distributed training
-enable_distributed: False
+enable_distributed: True
 
 # Number of GPUs to use
 num_processes: 4
@@ -23,8 +23,8 @@ output_dir: ./results
 num_train_epochs: 1
 
 # Enable fp16/bf16 training (set bf16 to True with an A100)
-fp16: True
-bf16: False
+fp16: False
+bf16: True
 
 # Batch size per GPU for training
 per_device_train_batch_size: 4
@@ -33,7 +33,7 @@ per_device_train_batch_size: 4
 per_device_eval_batch_size: 4
 
 # Number of update steps to accumulate the gradients for
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 2
 
 # Enable gradient checkpointing
 gradient_checkpointing: True
@@ -42,13 +42,13 @@ gradient_checkpointing: True
 max_grad_norm: 0.3
 
 # Initial learning rate (AdamW optimizer)
-learning_rate: 3e-5
+learning_rate: 1e-5
 
 # Weight decay to apply to all layers except bias/LayerNorm weights
 weight_decay: 0.001
 
 # Optimizer to use
-optim: paged_adamw_32bit
+# optim: paged_adamw_32bit
 
 # Learning rate schedule
 lr_scheduler_type: cosine
@@ -68,8 +68,6 @@ save_steps: .1
 
 # Log every X updates steps
 logging_steps: .1
-
-gradient_accumulation_steps: 4
 
 report_to: tensorboard
 
@@ -100,6 +98,10 @@ lora_alpha: 16
 # Dropout probability for LoRA layers
 lora_dropout: 0.05
 
+learning_rate: 3e-5
+
+optim: paged_adamw_32bit
+
 ################################################################################
 # Bits and Bytes
 ################################################################################
@@ -108,10 +110,10 @@ lora_dropout: 0.05
 load_in_8bit: False
 
 # Activate 4-bit precision base model loading
-load_in_4bit: False
+load_in_4bit: True
 
 # Compute dtype for 4-bit base models
-bnb_4bit_compute_dtype: float16
+bnb_4bit_compute_dtype: bfloat16
 
 # Quantization type (fp4 or nf4)
 bnb_4bit_quant_type: nf4
@@ -124,7 +126,7 @@ bnb_4bit_use_double_quant: True
 ################################################################################
 
 # Maximum sequence length to use
-max_seq_length: 2048
+max_seq_length: 768
 
 # Pack multiple short examples in the same input sequence to increase efficiency
 packing: False

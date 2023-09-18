@@ -7,3 +7,4 @@ peft @ git+https://github.com/huggingface/peft.git
 trl @ git+https://github.com/lvwerra/trl.git
 deepspeed @ git+https://github.com/microsoft/DeepSpeed.git
 scipy
+tensorboard

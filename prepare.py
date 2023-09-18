@@ -76,17 +76,18 @@ def preprocess_dataset(tokenizer: AutoTokenizer, dataset, max_seq_length=2048, s
 
 def prepare_tokenizer(tokenizer: AutoTokenizer):
     # Add our prompt tokens
-    tokenizer.add_tokens(["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"])
-    tokenizer.add_special_tokens(
-        {
-            "pad_token": tokenizer.eos_token,
-            "cls_token": tokenizer.eos_token,
-            "sep_token": tokenizer.eos_token,
-            "mask_token": tokenizer.eos_token,
-            "additional_special_tokens": ["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"],
-        }
-    )
+    # tokenizer.add_tokens(["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"])
+    # tokenizer.add_special_tokens(
+    #     {
+    #         "pad_token": tokenizer.eos_token,
+    #         "cls_token": tokenizer.eos_token,
+    #         "sep_token": tokenizer.eos_token,
+    #         "mask_token": tokenizer.eos_token,
+    #         "additional_special_tokens": ["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"],
+    #     }
+    # )
 
+    tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"  # Fix weird overflow issue with fp15 training
 
     return tokenizer

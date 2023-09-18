@@ -58,6 +58,7 @@ def get_train_ds_config(
         "stage3_param_persistence_threshold": 1e4,
         "stage3_max_live_parameters": 3e7,
         "stage3_prefetch_bucket_size": 3e7,
+        "stage3_gather_16bit_weights_on_model_save": True,
         "memory_efficient_linear": False,
     }
     if enable_mixed_precision_lora:
@@ -67,6 +68,7 @@ def get_train_ds_config(
     return {
         "train_batch_size": "auto",
         "gradient_accumulation_steps": "auto",
+        "train_micro_batch_size_per_gpu": "auto",
         "zero_optimization": zero_opt_dict,
         "fp16": {"enabled": "auto", "loss_scale_window": 100},
         "bf16": {"enabled": "auto"},
@@ -119,6 +121,8 @@ def get_accelerate_config(
 
     deepspeed_config = {}
 
+    accelerate_kwargs = {}
+
     if deepspeed:
         if task == "eval":
             ds_config = get_eval_ds_config(offload=offload, pin_memory=pin_memory, stage=stage)
@@ -132,6 +136,9 @@ def get_accelerate_config(
             "zero_init_flag": True,
         }
 
+    else:
+        accelerate_kwargs = {"mixed_precision": mixed_precision}
+
     return {
         "compute_environment": "LOCAL_MACHINE",
         "debug": False,
@@ -140,7 +147,6 @@ def get_accelerate_config(
         "gpu_ids": "all",
         "machine_rank": 0,
         "main_training_function": "main",
-        "mixed_precision": mixed_precision,
         "num_machines": num_machines,
         "num_processes": num_processes,
         "rdzv_backend": "static",
@@ -150,4 +156,5 @@ def get_accelerate_config(
         "tpu_use_sudo": False,
         "use_cpu": offload,
         "deepspeed_config": deepspeed_config,
+        **accelerate_kwargs,
     }
