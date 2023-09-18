@@ -212,11 +212,16 @@ class MachineLearningArguments:
 
     def model(self, **kwargs) -> AutoModelForCausalLM:
         device_map = None
+
         if self.lora.enable_lora and not self.ds.enable_deepspeed:
             device_map = {"": get_local_rank()}
             print(f"Device map: {device_map}", all_ranks="true")
-        quantization_config = self.bnb.config() if self.bnb.load_in_4bit or self.bnb.load_in_8bit else None
-        return self.hf.model(quantization_config=quantization_config, device_map=device_map, **kwargs)
+
+        return self.hf.model(
+            quantization_config=self.bnb.config() if self.bnb.load_in_4bit or self.bnb.load_in_8bit else None,
+            device_map=device_map,
+            **kwargs,
+        )
 
     def sft_trainer(self, model, tokenizer, train_dataset, **kwargs) -> SFTTrainer:
         if self.lora.enable_lora and self.dist.enable_distributed:
