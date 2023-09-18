@@ -1,17 +1,34 @@
 import sys
 import yaml
+import builtins
+import torch
 from transformers import (
     HfArgumentParser,
     TrainingArguments,
+    BitsAndBytesConfig,
+    AutoTokenizer,
+    AutoModelForCausalLM,
 )
-
-from typing import List, Union, NamedTuple
-
+from peft import LoraConfig
 from dataclasses import dataclass, field
+from typing import List, Union, NamedTuple
+from utils import find_all_linear_names, get_local_rank
+from trl import SFTTrainer
+
+
+def print(*args, **kwargs):
+    if get_local_rank() == 0 and not kwargs.get("all_ranks", False):
+        builtins.print(*args, **kwargs)
 
 
 @dataclass
-class TaskArguments:
+class Arguments:
+    def config(self):
+        return self.__dict__
+
+
+@dataclass
+class TaskArguments(Arguments):
     # should only be train or eval
     task: str = field(default="train", metadata={"help": "Task name"})
     clear_data_cache: bool = field(default=False, metadata={"help": "Clear data cache"})
@@ -19,25 +36,47 @@ class TaskArguments:
 
 
 @dataclass
-class HuggingFaceHubArguments:
-    model_name_or_path: str = field(
+class HuggingFaceHubArguments(Arguments):
+    pretrained_model_name_or_path: str = field(
         metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
     )
     trust_remote_code: bool = field(
         default=False,
         metadata={"help": "Whether to trust remote code when loading a pretrained model"},
     )
+    revision: Union[str, None] = field(
+        default=None,
+        metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
+    )
+
+    def tokenizer(self, **kwargs):
+        return AutoTokenizer.from_pretrained(
+            self.pretrained_model_name_or_path,
+            trust_remote_code=self.trust_remote_code,
+            revision=self.revision,
+            **kwargs,
+        )
+
+    def model(self, quantization_config: BitsAndBytesConfig = None, device_map=None, **kwargs):
+        return AutoModelForCausalLM.from_pretrained(
+            self.pretrained_model_name_or_path,
+            trust_remote_code=self.trust_remote_code,
+            revision=self.revision,
+            quantization_config=quantization_config,
+            device_map=device_map,
+            **kwargs,
+        )
 
 
 @dataclass
-class DistributedArguments:
+class DistributedArguments(Arguments):
     enable_distributed: bool = field(default=False, metadata={"help": "Whether to use distributed training"})
     num_machines: int = field(default=1, metadata={"help": "Number of machines"})
     num_processes: int = field(default=1, metadata={"help": "Number of processes"})
 
 
 @dataclass
-class DeepSpeedArguments:
+class DeepSpeedArguments(Arguments):
     enable_deepspeed: bool = field(default=False, metadata={"help": "Whether to use DeepSpeed"})
     stage: int = field(default=2, metadata={"help": "DeepSpeed ZeRO stage"})
     offload: bool = field(default=False, metadata={"help": "Whether to offload to CPU"})
@@ -50,68 +89,69 @@ class DeepSpeedArguments:
 
 
 @dataclass
-class LoraArguments:
+class LoraArguments(Arguments):
     enable_lora: bool = field(default=False, metadata={"help": "Whether to use LoRA"})
     lora_r: int = field(default=8, metadata={"help": "Lora attention dimension"})
     lora_alpha: int = field(default=8, metadata={"help": "Lora alpha"})
     lora_dropout: float = field(default=0.0, metadata={"help": "Lora dropout"})
     lora_bias: str = field(default="none", metadata={"help": "Bias type for Lora. Can be 'none', 'all' or 'lora_only'"})
+    lora_task_type: str = field(
+        default="CAUSAL_LM",
+        metadata={
+            "help": "Task type for Lora. Can be 'SEQ_CLS', 'SEQ_2_SEQ_LM', 'CAUSAL_LM', 'TOKEN_CLS', 'QUESTION_ANS', 'FEATURE_EXTRACTION'"
+        },
+    )
+
+    def config(self, model, **kwargs) -> LoraConfig:
+        return LoraConfig(
+            lora_alpha=self.lora_alpha,
+            lora_dropout=self.lora_dropout,
+            target_modules=find_all_linear_names(model) if model is not None else None,
+            r=self.lora_r,
+            bias=self.lora_bias,
+            task_type=self.lora_task_type,
+            **kwargs,
+        )
 
 
 @dataclass
-class BitsAndBytesArguments:
-    # load_in_8bit=False,
+class BitsAndBytesArguments(Arguments):
     load_in_8bit: bool = field(default=False, metadata={"help": "Whether to load in 8-bit"})
-
-    # load_in_4bit=False,
     load_in_4bit: bool = field(default=False, metadata={"help": "Whether to load in 4-bit"})
-
-    # llm_int8_threshold=6.0,
     llm_int8_threshold: float = field(
         default=6.0,
         metadata={
             "help": "Any hidden states value that is above this threshold will be considered an outlier and the operation on those values will be done in fp16."
         },
     )
-
     llm_int8_skip_modules: Union[List[str], None] = field(
         default=None,
         metadata={"help": "An explicit list of the modules that we do not want to convert in 8-bit."},
     )
-
-    # llm_int8_enable_fp32_cpu_offload=False,
     llm_int8_enable_fp32_cpu_offload: bool = field(
         default=False,
         metadata={
             "help": "If you want to split your model in different parts and run some parts in int8 on GPU and some parts in fp32 on CPU, you can use this flag. Note that the int8 operations will not be run on CPU."
         },
     )
-
-    # llm_int8_has_fp16_weight=False,
     llm_int8_has_fp16_weight: bool = field(
         default=False,
         metadata={
             "help": "This is useful for fine-tuning as the weights do not have to be converted back and forth for the backward pass."
         },
     )
-
-    # bnb_4bit_compute_dtype=None,
     bnb_4bit_compute_dtype: Union[str, None] = field(
         default=None,
         metadata={
             "help": "This sets the computational type which might be different than the input type. For example, inputs might be fp32, but computation can be set to bf16 for speedups."
         },
     )
-
-    # bnb_4bit_quant_type="fp4",
     bnb_4bit_quant_type: str = field(
         default="fp4",
         metadata={
             "help": "This sets the quantization data type in the bnb.nn.Linear4Bit layers. Options are FP4 and NF4 data types which are specified by `fp4` or `nf4`."
         },
     )
-
-    # bnb_4bit_use_double_quant=False,
     bnb_4bit_use_double_quant: bool = field(
         default=False,
         metadata={
@@ -119,9 +159,19 @@ class BitsAndBytesArguments:
         },
     )
 
+    def config(self, **kwargs) -> BitsAndBytesConfig:
+        return BitsAndBytesConfig(**self.__dict__, **kwargs)
+
+    def __post_init__(self):
+        # Check GPU compatibility with bfloat16
+        if self.load_in_4bit and self.bnb_4bit_compute_dtype == torch.float16:
+            major, _ = torch.cuda.get_device_capability()
+            if major >= 8:
+                print("Your GPU supports bfloat16: accelerate training with bnb_4bit_compute_dtype=bfloat16")
+
 
 @dataclass
-class SFTArguments:
+class SFTArguments(Arguments):
     max_seq_length: int = field(
         default=2048,
         metadata={"help": "Maximum sequence length to use for training"},
@@ -132,7 +182,8 @@ class SFTArguments:
     )
 
 
-class MachineLearningArguments(NamedTuple):
+@dataclass
+class MachineLearningArguments:
     task: TaskArguments
     hf: HuggingFaceHubArguments
     dist: DistributedArguments
@@ -143,12 +194,50 @@ class MachineLearningArguments(NamedTuple):
     bnb: BitsAndBytesArguments
     nargs: list
 
+    def __iter__(self):
+        return iter([self.task, self.hf, self.dist, self.trainer, self.sft, self.ds, self.lora, self.bnb, self.nargs])
+
+    def lora_config(self, model) -> LoraConfig:
+        return self.lora.config(model)
+
+    def bnb_config(self) -> BitsAndBytesConfig:
+        return self.bnb.config()
+
+    def tokenizer(self, **kwargs) -> AutoTokenizer:
+        return self.hf.tokenizer(**kwargs)
+
+    def model(self, **kwargs) -> AutoModelForCausalLM:
+        device_map = None
+        if self.lora.enable_lora:
+            device_map = {get_local_rank(): ""}
+        print(f"Device map: {device_map}", all_ranks=True)
+        return self.hf.model(quantization_config=self.bnb.config(), device_map=device_map, **kwargs)
+
+    def sft_trainer(self, model, tokenizer, dataset, **kwargs) -> SFTTrainer:
+        return SFTTrainer(
+            model=model,
+            train_dataset=dataset,
+            peft_config=self.lora.config(model) if self.lora.enable_lora else None,
+            dataset_text_field="text",
+            max_seq_length=self.sft.max_seq_length,
+            tokenizer=tokenizer,
+            args=self.trainer,
+            packing=self.sft.packing,
+            **kwargs,
+        )
+
+    def __post_init__(self):
+        # Check GPU compatibility with bfloat16
+        if self.trainer.fp16:
+            major, _ = torch.cuda.get_device_capability()
+            if major >= 8:
+                print("Your GPU supports bfloat16: accelerate training with bf16=True")
+
 
 def parse_args() -> MachineLearningArguments:
     config = yaml.load(open("ml.yaml", "r"), Loader=yaml.FullLoader)
 
     default_args = [
-        *["--quant_method", "bitsandbytes"],
         *["--output_dir", "./results"],
     ]
 
@@ -170,17 +259,19 @@ def parse_args() -> MachineLearningArguments:
         )
     )
 
-    task, hf, trainer, dist, trl, ds, lora, bnb, nargs = parser.parse_args_into_dataclasses(
+    task, hf, dist, trainer, sft, ds, lora, bnb, nargs = parser.parse_args_into_dataclasses(
         args=[*default_args, *sys.argv[1:]],
         return_remaining_strings=True,
     )
 
-    return MachineLearningArguments(task, hf, trainer, dist, trl, ds, lora, bnb, nargs)
+    test = MachineLearningArguments(task, hf, dist, trainer, sft, ds, lora, bnb, nargs)
+
+    return test
 
 
-def print_args(args: MachineLearningArguments, print=print):
-    for arg_group in args:
-        if not isinstance(arg_group, list):
-            print(arg_group.__class__.__name__, arg_group.__dict__)
+def print_args(args: MachineLearningArguments):
+    for arg_set in args:
+        if not isinstance(arg_set, list):
+            print(arg_set.__class__.__name__, arg_set.__dict__)
         else:
-            print("UnknownArguments", arg_group)
+            print("UnknownArguments", arg_set)

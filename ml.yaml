@@ -1,6 +1,6 @@
 project: lora-cutoff
 
-model_name_or_path: meta-llama/Llama-2-7b-hf
+pretrained_model_name_or_path: meta-llama/Llama-2-7b-hf
 
 ################################################################################
 # Distributed training parameters

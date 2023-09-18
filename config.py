@@ -31,6 +31,8 @@ def save_temp_config(config, config_type, tmp_dir=".tmp", format="json"):
             json.dump(config, fp)
         elif format == "yaml":
             yaml.dump(config, fp)
+        else:
+            raise ValueError(f"Unknown format: '{format}'")
 
     return config_path
 
