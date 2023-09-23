@@ -112,11 +112,11 @@ class LoraArguments(Arguments):
     lora_alpha: int = field(default=8, metadata={"help": "Lora alpha"})
     lora_dropout: float = field(default=0.0, metadata={"help": "Lora dropout"})
     lora_bias: str = field(default="none", metadata={"help": "Bias type for Lora. Can be 'none', 'all' or 'lora_only'"})
-    target_modules: List[str] = field(
+    target_modules: list[str] = field(
         default_factory=lambda: [],
         metadata={"help": "Target modules for Lora. If empty, all modules will be targeted."},
     )
-    modules_to_save: List[str] = field(
+    modules_to_save: list[str] = field(
         default_factory=lambda: [],
         metadata={
             "help": "List of modules apart from LoRA layers to be set as trainable and saved in the final checkpoint. These typically include model’s custom head that is randomly initialized for the fine-tuning task."
@@ -152,7 +152,7 @@ class BitsAndBytesArguments(Arguments):
             "help": "Any hidden states value that is above this threshold will be considered an outlier and the operation on those values will be done in fp16."
         },
     )
-    llm_int8_skip_modules: Union[List[str], None] = field(
+    llm_int8_skip_modules: Union[list[str], None] = field(
         default=None,
         metadata={"help": "An explicit list of the modules that we do not want to convert in 8-bit."},
     )
@@ -296,7 +296,13 @@ def parse_task_args() -> MachineLearningArguments:
     for k, v in config.items():
         if v is None:
             continue
-        default_args += [f"--{k}", f"{v}"]
+        # if it is a list add each arg sepatly
+        if isinstance(v, list):
+            default_args += [f"--{k}"]
+            for val in v:
+                default_args += [f"{val}"]
+        else:
+            default_args += [f"--{k}", f"{v}"]
 
     parser = HfArgumentParser(
         (

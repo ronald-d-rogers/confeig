@@ -118,8 +118,6 @@ lora_dropout: 0.05
 
 target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "embed_tokens", "lm_head"]
 
-modules_to_save: []
-
 learning_rate: 3e-5
 
 optim: paged_adamw_32bit
