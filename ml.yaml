@@ -78,7 +78,7 @@ report_to: tensorboard
 # Whether to use DeepSpeed
 enable_deepspeed: False
 
-zero_stage: 3
+zero_stage: 
 
 offload: False
 
