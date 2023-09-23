@@ -24,12 +24,14 @@ def main():
     # Load dataset
     dataset = load_from_disk("./prepared")
 
-    # Load LLaMA tokenizer
+    # Load tokenizer
     tokenizer = args.tokenizer()
     tokenizer = prepare_tokenizer(tokenizer)
 
     # Load base model
     model = args.model()
+
+    # Set Llama 2 specific parameters
     model.config.use_cache = False
     model.config.pretraining_tp = 1
 
