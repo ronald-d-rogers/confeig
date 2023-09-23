@@ -13,7 +13,7 @@ def main():
         task=args.task.task,
         distributed=args.dist.enable_distributed,
         deepspeed=args.ds.enable_deepspeed,
-        stage=args.ds.stage,
+        stage=args.ds.zero_stage,
         offload=args.ds.offload,
         pin_memory=args.ds.pin_memory,
         mixed_precision="bf16" if args.trainer.bf16 else "fp16" if args.trainer.fp16 else "no",

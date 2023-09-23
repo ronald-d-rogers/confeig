@@ -79,7 +79,7 @@ class DistributedArguments(Arguments):
 @dataclass
 class DeepSpeedArguments(Arguments):
     enable_deepspeed: bool = field(default=False, metadata={"help": "Whether to use DeepSpeed"})
-    stage: int = field(default=2, metadata={"help": "DeepSpeed ZeRO stage"})
+    zero_stage: int = field(default=2, metadata={"help": "DeepSpeed ZeRO stage"})
     offload: bool = field(default=False, metadata={"help": "Whether to offload to CPU"})
     pin_memory: bool = field(
         default=True,
