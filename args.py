@@ -52,7 +52,7 @@ class HuggingFaceHubArguments(Arguments):
 
     def tokenizer(self, **kwargs):
         return AutoTokenizer.from_pretrained(
-            self.pretrained_model_name_or_path,
+            pretrained_model_name_or_path=self.pretrained_model_name_or_path,
             trust_remote_code=self.trust_remote_code,
             revision=self.revision,
             **kwargs,
@@ -60,7 +60,7 @@ class HuggingFaceHubArguments(Arguments):
 
     def model(self, quantization_config: BitsAndBytesConfig = None, device_map=None, **kwargs):
         return AutoModelForCausalLM.from_pretrained(
-            self.pretrained_model_name_or_path,
+            pretrained_model_name_or_path=self.pretrained_model_name_or_path,
             trust_remote_code=self.trust_remote_code,
             revision=self.revision,
             quantization_config=quantization_config,
