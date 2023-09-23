@@ -3,7 +3,7 @@ import os
 from datasets import load_from_disk
 
 from utils import get_local_rank, get_local_rank
-from args import parse_args, print_args
+from args import parse_task_args, print_args
 from prepare import prepare_tokenizer
 
 
@@ -14,7 +14,7 @@ def print(*args, **kwargs):
 
 def main():
     # Parse args
-    args = parse_args()
+    args = parse_task_args()
 
     print_args(args)
 
@@ -46,11 +46,11 @@ def main():
     # Train model
     trainer.train()
 
-    # Save trained model
-    trainer.model.save_pretrained("./")
+    # Save model & tokenizer
+    save_dir = args.task.save_dir
 
-    # Save tokenizer
-    tokenizer.save_pretrained("./")
+    trainer.model.save_pretrained(save_dir)
+    tokenizer.save_pretrained(save_dir)
 
 
 if __name__ == "__main__":

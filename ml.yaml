@@ -3,11 +3,29 @@ project: lora-cutoff
 pretrained_model_name_or_path: meta-llama/Llama-2-7b-hf
 
 ################################################################################
+# Instance parameters
+################################################################################
+
+# Instances type used for the training job
+instance_type: ml.g5.2xlarge
+
+# The size of the EBS volume in GB
+volume_size: 256
+
+# The number of instances used for training
+instance_count: 1
+
+# Maximum runtime in seconds (days * hours * minutes * seconds)
+max_run: 172800 # 2 * 24 * 60 * 60 (2 days)
+
+use_spot_instances: True
+
+################################################################################
 # Distributed training parameters
 ################################################################################
 
 # Whether to use distributed training
-enable_distributed: True
+enable_distributed: False
 
 # Number of GPUs to use
 num_processes: 4
@@ -97,6 +115,10 @@ lora_alpha: 16
 
 # Dropout probability for LoRA layers
 lora_dropout: 0.05
+
+target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "embed_tokens", "lm_head"]
+
+modules_to_save: []
 
 learning_rate: 3e-5
 

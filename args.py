@@ -11,7 +11,7 @@ from transformers import (
 )
 from peft import LoraConfig
 from dataclasses import dataclass, field
-from typing import List, Union, NamedTuple
+from typing import List, Union, Tuple
 from utils import find_all_linear_names, get_local_rank
 from trl import SFTTrainer
 
@@ -31,9 +31,11 @@ class Arguments:
 @dataclass
 class TaskArguments(Arguments):
     # should only be train or eval
+    project: str = field(default="huggingface", metadata={"help": "Project name"})
     task: str = field(default="train", metadata={"help": "Task name"})
-    clear_data_cache: bool = field(default=False, metadata={"help": "Clear data cache"})
     tmp_dir: str = field(default=".tmp", metadata={"help": "Temporary directory"})
+    save_dir: str = field(default=".", metadata={"help": "Save directory"})
+    clear_data_cache: bool = field(default=False, metadata={"help": "Clear data cache"})
 
 
 @dataclass
@@ -70,6 +72,20 @@ class HuggingFaceHubArguments(Arguments):
 
 
 @dataclass
+class InstanceArguments(Arguments):
+    instance_type: str = field(default="ml.p4d.24xlarge", metadata={"help": "Instance type used for the task"})
+    volume_size: int = field(default=300, metadata={"help": "The size of the EBS volume in GB"})
+    instance_count: int = field(default=1, metadata={"help": "The number of instances used for task"})
+    max_run: int = field(
+        default=2 * 24 * 60 * 60,
+        metadata={"help": "Maximum runtime in seconds (days * hours * minutes * seconds)"},
+    )
+    use_spot_instances: bool = field(
+        default=False, metadata={"help": "Whether to use spot instances for cheaper training"}
+    )
+
+
+@dataclass
 class DistributedArguments(Arguments):
     enable_distributed: bool = field(default=False, metadata={"help": "Whether to use distributed training"})
     num_machines: int = field(default=1, metadata={"help": "Number of machines"})
@@ -96,6 +112,16 @@ class LoraArguments(Arguments):
     lora_alpha: int = field(default=8, metadata={"help": "Lora alpha"})
     lora_dropout: float = field(default=0.0, metadata={"help": "Lora dropout"})
     lora_bias: str = field(default="none", metadata={"help": "Bias type for Lora. Can be 'none', 'all' or 'lora_only'"})
+    target_modules: List[str] = field(
+        default_factory=lambda: [],
+        metadata={"help": "Target modules for Lora. If empty, all modules will be targeted."},
+    )
+    modules_to_save: List[str] = field(
+        default_factory=lambda: [],
+        metadata={
+            "help": "List of modules apart from LoRA layers to be set as trainable and saved in the final checkpoint. These typically include model’s custom head that is randomly initialized for the fine-tuning task."
+        },
+    )
     lora_task_type: str = field(
         default="CAUSAL_LM",
         metadata={
@@ -107,9 +133,10 @@ class LoraArguments(Arguments):
         return LoraConfig(
             lora_alpha=self.lora_alpha,
             lora_dropout=self.lora_dropout,
-            target_modules=find_all_linear_names(model) if model is not None else None,
+            target_modules=self.target_modules or find_all_linear_names(model),
             r=self.lora_r,
             bias=self.lora_bias,
+            modules_to_save=self.modules_to_save,
             task_type=self.lora_task_type,
             **kwargs,
         )
@@ -253,7 +280,13 @@ class MachineLearningArguments:
                 print("\033[0m", end="")
 
 
-def parse_args() -> MachineLearningArguments:
+def parse_instance_args() -> Tuple[TaskArguments, InstanceArguments]:
+    parser = HfArgumentParser((TaskArguments, InstanceArguments))
+    task, inst, _ = parser.parse_args_into_dataclasses(args=sys.argv[1:], return_remaining_strings=True)
+    return task, inst
+
+
+def parse_task_args() -> MachineLearningArguments:
     config = yaml.load(open("ml.yaml", "r"), Loader=yaml.FullLoader)
 
     default_args = [

@@ -1,13 +1,13 @@
 import os
 import sys
 
-from args import parse_args
+from args import parse_task_args
 from config import get_accelerate_config, save_temp_config
 
 
 def main():
     # Parse args
-    args = parse_args()
+    args = parse_task_args()
 
     accelerate_config = get_accelerate_config(
         task=args.task.task,

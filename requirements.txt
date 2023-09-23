@@ -8,3 +8,4 @@ trl @ git+https://github.com/lvwerra/trl.git
 deepspeed @ git+https://github.com/microsoft/DeepSpeed.git
 scipy
 tensorboard
+sagemaker

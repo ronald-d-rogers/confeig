@@ -2,7 +2,7 @@ import json
 from functools import partial
 from transformers import AutoTokenizer
 from datasets import load_dataset
-from args import parse_args
+from args import parse_task_args
 
 
 def create_prompt_formats(sample):
@@ -95,7 +95,7 @@ def prepare_tokenizer(tokenizer: AutoTokenizer):
 
 def main():
     # Parse args
-    args = parse_args()
+    args = parse_task_args()
 
     tokenizer = args.tokenizer()
     tokenizer = prepare_tokenizer(tokenizer)
