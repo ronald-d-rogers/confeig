@@ -74,7 +74,7 @@ class HuggingFaceHubArguments(Arguments):
 @dataclass
 class InstanceArguments(Arguments):
     instance_type: str = field(default="ml.p4d.24xlarge", metadata={"help": "Instance type used for the task"})
-    volume_size: int = field(default=300, metadata={"help": "The size of the EBS volume in GB"})
+    volume_size: int = field(default=256, metadata={"help": "The size of the EBS volume in GB"})
     instance_count: int = field(default=1, metadata={"help": "The number of instances used for task"})
     max_run: Union[int, None] = field(
         default=None,

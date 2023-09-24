@@ -22,7 +22,6 @@ def main():
     print_args(args)
 
     accelerate_config = get_accelerate_config(
-        task=args.task.task,
         distributed=args.dist.enable_distributed,
         deepspeed=args.ds.enable_deepspeed,
         stage=args.ds.zero_stage,
