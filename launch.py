@@ -38,7 +38,7 @@ def main():
     if not os.path.exists("./prepared") or args.task.clear_data_cache:
         os.system("python prepare.py")
 
-    command = f"accelerate launch --config_file {accelerate_config_path} {args.task.task}.py {' '.join(sys.argv[1:])}"
+    command = f"accelerate launch --config_file {accelerate_config_path} train.py {' '.join(sys.argv[1:])}"
 
     print("Running accelerate...")
     print(f"command: {command}")

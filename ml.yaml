@@ -63,6 +63,7 @@ full-parameter:
 
   # Whether to use spot instances to reduce costs
   use_spot_instances: False
+  # max_wait: 9800
 
   ################################################################################
   # Distributed training parameters
