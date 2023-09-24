@@ -1,159 +1,199 @@
 project: lora-cutoff
 
-pretrained_model_name_or_path: meta-llama/Llama-2-7b-hf
+config: 
+  - llama-2-7b
+  - full-parameter
 
-################################################################################
-# Instance parameters
-################################################################################
+llama-2-7b:
+  pretrained_model_name_or_path: meta-llama/Llama-2-7b-hf
 
-# Instances type used for the training job
-instance_type: ml.g5.2xlarge
-# instance_type: ml.p4d.24xlarge
+defaults:
+  ################################################################################
+  # SFT parameters
+  ################################################################################
 
-# The size of the EBS volume in GB
-volume_size: 256
+  # Maximum sequence length to use
+  max_seq_length: 768
 
-# The number of instances used for training
-instance_count: 1
+  # Pack multiple short examples in the same input sequence to increase efficiency
+  packing: False
 
-# How long to allow the job to run (in seconds)
-max_run: 172800 # 2 * 24 * 60 * 60 (2 days)
+  ################################################################################
+  # Trainer parameters
+  ################################################################################
 
-# Whether to use spot instances to reduce costs
-use_spot_instances: True
+  # Output directory where the model predictions and checkpoints will be stored
+  output_dir: ./results
 
-# How long to wait for a spot instance to become available (in seconds)
-max_wait: 172801
+  # Enable fp16/bf16 training (set bf16 to True with an A100)
+  fp16: False
+  bf16: True
 
-################################################################################
-# Distributed training parameters
-################################################################################
+  # Maximum gradient normal (gradient clipping)
+  max_grad_norm: 0.3
 
-# Whether to use distributed training
-enable_distributed: False
+  # Weight decay to apply to all layers except bias/LayerNorm weights
+  weight_decay: 0.001
 
-# Number of GPUs to use
-num_processes: 8
+  # Learning rate schedule
+  lr_scheduler_type: cosine
 
-################################################################################
-# Trainer parameters
-################################################################################
+  # Number of training steps (overrides num_train_epochs)
+  max_steps: -1
 
-epoch: 4
+  # Ratio of steps for a linear warmup (from 0 to learning rate)
+  warmup_ratio: 0.03
 
-# Output directory where the model predictions and checkpoints will be stored
-output_dir: ./results
+  # Group sequences into batches with same length (saves memory and speeds up training considerably)
+  group_by_length: True
 
-# Number of training epochs
-num_train_epochs: 1
+  # Where else to log metrics (tensorboard, mlflow, wandb)
+  report_to: tensorboard
 
-# Enable fp16/bf16 training (set bf16 to True with an A100)
-fp16: False
-bf16: True
+full-parameter:
+  ################################################################################
+  # Instance parameters
+  ################################################################################
 
-# Batch size per GPU for training
-per_device_train_batch_size: 4
+  # Instances type used for the training job
+  instance_type: ml.p4d.24xlarge
 
-# Batch size per GPU for evaluation
-per_device_eval_batch_size: 4
+  # How long to allow the job to run (in seconds)
+  max_run: 7200
 
-# Number of update steps to accumulate the gradients for
-gradient_accumulation_steps: 2
+  # Whether to use spot instances to reduce costs
+  use_spot_instances: False
 
-# Enable gradient checkpointing
-gradient_checkpointing: True
+  ################################################################################
+  # Distributed training parameters
+  ################################################################################
 
-# Maximum gradient normal (gradient clipping)
-max_grad_norm: 0.3
+  # Whether to use distributed training
+  enable_distributed: True
 
-# Initial learning rate (AdamW optimizer)
-learning_rate: 1e-5
+  # Number of GPUs to use
+  num_processes: 8
 
-# Weight decay to apply to all layers except bias/LayerNorm weights
-weight_decay: 0.001
+  ################################################################################
+  # DeepSpeed parameters
+  ################################################################################
 
-# Optimizer to use
-# optim: paged_adamw_32bit
+  # Whether to use DeepSpeed
+  enable_deepspeed: True
 
-# Learning rate schedule
-lr_scheduler_type: cosine
+  zero_stage: 3
 
-# Number of training steps (overrides num_train_epochs)
-max_steps: -1
+  offload: False
 
-# Ratio of steps for a linear warmup (from 0 to learning rate)
-warmup_ratio: 0.03
+  ################################################################################
+  # Trainer parameters
+  ################################################################################
 
-# Group sequences into batches with same length
-# Saves memory and speeds up training considerably
-group_by_length: True
+  # Number of training epochs
+  num_train_epochs: 4
 
-# Save checkpoint every X updates steps
-save_steps: .05
+  # Batch size per GPU for training
+  per_device_train_batch_size: 16
 
-# Log every X updates steps
-logging_steps: .05
+  # Batch size per GPU for evaluation
+  per_device_eval_batch_size: 16
 
-report_to: tensorboard
+  # Number of update steps to accumulate the gradients for
+  gradient_accumulation_steps: 6
 
-################################################################################
-# DeepSpeed parameters
-################################################################################
+  # Enable gradient checkpointing
+  gradient_checkpointing: True
 
-# Whether to use DeepSpeed
-enable_deepspeed: False
+  # Initial learning rate (AdamW optimizer)
+  learning_rate: 1e-5
 
-zero_stage: 3
+  # Save checkpoint every X steps
+  save_steps: 3
 
-offload: False
+  # Evaluate every X steps
+  eval_steps: 3
 
-################################################################################
-# LoRA parameters
-################################################################################
+  # Log every X steps
+  logging_steps: 1
 
-# Whether to use LoRA
-enable_lora: True
+lora:
+  ################################################################################
+  # Instance parameters
+  ################################################################################
 
-# LoRA attention dimension
-lora_r: 8
+  # Instances type used for the training job
+  instance_type: ml.g5.2xlarge
 
-# Alpha parameter for LoRA scaling
-lora_alpha: 16
+  # Whether to use spot instances to reduce costs
+  use_spot_instances: True
 
-# Dropout probability for LoRA layers
-lora_dropout: 0.05
+  # How long to wait for a spot instance to become available (in seconds)
+  max_wait: 9800
 
-target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "embed_tokens", "lm_head"]
+  ################################################################################
+  # Trainer parameters
+  ################################################################################
 
-learning_rate: 3e-5
+  # Number of training epochs
+  num_train_epochs: 1
 
-optim: paged_adamw_32bit
+  # Batch size per GPU for training
+  per_device_train_batch_size: 4
 
-################################################################################
-# Bits and Bytes
-################################################################################
+  # Batch size per GPU for evaluation
+  per_device_eval_batch_size: 4
 
-# Activate 8-bit precision base model loading
-load_in_8bit: False
+  # Number of update steps to accumulate the gradients for
+  gradient_accumulation_steps: 2
 
-# Activate 4-bit precision base model loading
-load_in_4bit: True
+  # Enable gradient checkpointing
+  gradient_checkpointing: True
 
-# Compute dtype for 4-bit base models
-bnb_4bit_compute_dtype: bfloat16
+  # Adam optimizer to use
+  optim: paged_adamw_32bit
 
-# Quantization type (fp4 or nf4)
-bnb_4bit_quant_type: nf4
+  # Initial learning rate (AdamW optimizer)
+  learning_rate: 3e-5
 
-# Activate nested quantization for 4-bit base models (double quantization)
-bnb_4bit_use_double_quant: True
+  # Save checkpoint every X steps
+  save_steps: 3
 
-################################################################################
-# SFT parameters
-################################################################################
+  # Evaluate every X steps
+  eval_steps: 3
 
-# Maximum sequence length to use
-max_seq_length: 768
+  # Log every X steps
+  logging_steps: 1
 
-# Pack multiple short examples in the same input sequence to increase efficiency
-packing: False
+  ################################################################################
+  # LoRA parameters
+  ################################################################################
+
+  # Whether to use LoRA
+  enable_lora: True
+
+  # LoRA attention dimension
+  lora_r: 8
+
+  # Alpha parameter for LoRA scaling
+  lora_alpha: 16
+
+  # Dropout probability for LoRA layers
+  lora_dropout: 0.05
+
+  target_modules: ["q_proj", "v_proj", "k_proj", "o_proj", "gate_proj", "up_proj", "down_proj", "embed_tokens", "lm_head"]
+
+  ################################################################################
+  # Bits and Bytes
+  ################################################################################
+
+  # Activate 4-bit precision base model loading
+  load_in_4bit: True
+
+  # Compute dtype for 4-bit base models
+  bnb_4bit_compute_dtype: bfloat16
+
+  # Quantization type (fp4 or nf4)
+  bnb_4bit_quant_type: nf4
+
+  # Activate nested quantization for 4-bit base models (double quantization)
+  bnb_4bit_use_double_quant: True

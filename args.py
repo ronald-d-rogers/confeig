@@ -32,7 +32,7 @@ class Arguments:
 class TaskArguments(Arguments):
     # should only be train or eval
     project: str = field(default="huggingface", metadata={"help": "Project name"})
-    task: str = field(default="train", metadata={"help": "Task name"})
+    config: str = field(default=None, metadata={"help": "Config section in the config file to use for this task"})
     tmp_dir: str = field(default=".tmp", metadata={"help": "Temporary directory"})
     save_dir: str = field(default=".", metadata={"help": "Save directory"})
     clear_data_cache: bool = field(default=False, metadata={"help": "Clear data cache"})
@@ -340,8 +340,35 @@ arg_keywords = {
 
 
 def parse_args(*classes) -> MachineLearningArguments:
-    config = yaml.load(open("ml.yaml", "r"), Loader=yaml.FullLoader)
-    config_args = object_to_args(config)
+    full_config = yaml.load(open("ml.yaml", "r"), Loader=yaml.FullLoader)
+
+    current_config = {
+        # all defaults and any param that isn't an object
+        k: v
+        for k, v in full_config.items()
+        if not isinstance(v, dict)
+    }
+
+    if "defaults" in full_config:
+        # add defaults to config
+        current_config.update(full_config["defaults"])
+
+    if "config" in full_config:
+        config_keys = full_config["config"]
+
+        if isinstance(config_keys, list):
+            # if `config` is set, add its settings to run config
+            for key in config_keys:
+                if key in full_config:
+                    current_config.update(full_config[key])
+        elif isinstance(config_keys, str):
+            key = config_keys
+            if key in full_config:
+                current_config.update(full_config[key])
+        else:
+            raise ValueError(f"Invalid config key type: {type(config_keys)}: Must be str or list[str]")
+
+    config_args = object_to_args(current_config)
 
     parser = HfArgumentParser(classes)
 
@@ -360,11 +387,11 @@ def parse_args(*classes) -> MachineLearningArguments:
     return MachineLearningArguments(**kwargs)
 
 
-def print_args(args: MachineLearningArguments):
+def print_args(args: MachineLearningArguments, unknown=False):
     for arg_class in args:
         if not arg_class:
             continue
         if not isinstance(arg_class, list):
             print(arg_class.__class__.__name__, arg_class.__dict__)
-        else:
+        elif unknown:
             print("UnknownArguments", arg_class)

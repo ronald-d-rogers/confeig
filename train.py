@@ -55,7 +55,7 @@ def main():
     model = args.model()
 
     # Make new learnable parameters for specialized tokens (added by `prepare_tokenizer`)
-    model.resize_token_embeddings(len(tokenizer))
+    model.resize_token_embeddings(len(tokenizer), pad_to_multiple_of=8)
 
     # Set Llama 2 specific parameters
     model.config.use_cache = False
@@ -72,7 +72,7 @@ def main():
         model=model,
         tokenizer=tokenizer,
         train_dataset=dataset["train"],
-        validation_dataset=dataset["validation"] if "validation" in dataset else None,
+        eval_dataset=dataset["validation"] if "validation" in dataset else None,
         dataset_text_field="text",
         # compute_metrics=compute_metrics,
     )

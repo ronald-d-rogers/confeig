@@ -77,24 +77,10 @@ def preprocess_dataset(tokenizer: AutoTokenizer, dataset, max_seq_length=2048, s
 
 
 def prepare_tokenizer(tokenizer: AutoTokenizer):
-    # Add our prompt tokens
-    # tokenizer.add_tokens(["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"])
-    # tokenizer.add_special_tokens(
-    #     {
-    #         "pad_token": tokenizer.eos_token,
-    #         "cls_token": tokenizer.eos_token,
-    #         "sep_token": tokenizer.eos_token,
-    #         "mask_token": tokenizer.eos_token,
-    #         "additional_special_tokens": ["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"],
-    #     }
-    # )
-
     special_tokens = ["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"]
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"  # Fix weird overflow issue with fp15 training
-
     tokenizer.add_tokens(special_tokens, special_tokens=True)
-
     return tokenizer
 
 
@@ -104,23 +90,23 @@ def main():
 
     print_args(args)
 
-    tokenizer = args.tokenizer()
-    tokenizer = prepare_tokenizer(tokenizer)
+    # tokenizer = args.tokenizer()
+    # tokenizer = prepare_tokenizer(tokenizer)
 
-    ## Preprocess dataset
-    dataset = load_dataset("gsm8k", "main")
+    # ## Preprocess dataset
+    # dataset = load_dataset("gsm8k", "main")
 
-    if args.task.clear_data_cache:
-        dataset.cleanup_cache_files()
+    # if args.task.clear_data_cache:
+    #     dataset.cleanup_cache_files()
 
-    dataset, report = preprocess_dataset(tokenizer, dataset, args.sft.max_seq_length)
+    # dataset, report = preprocess_dataset(tokenizer, dataset, args.sft.max_seq_length)
 
-    print("Dataset report:", report)
+    # print("Dataset report:", report)
 
-    dataset.save_to_disk("./prepared")
+    # dataset.save_to_disk("./prepared")
 
-    with open("./prepared/report.json", "w") as f:
-        json.dump(report, f)
+    # with open("./prepared/report.json", "w") as f:
+    #     json.dump(report, f)
 
 
 if __name__ == "__main__":
