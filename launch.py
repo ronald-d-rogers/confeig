@@ -1,13 +1,25 @@
 import os
+
+os.system("pip install flash-attn --no-build-isolation --upgrade")
 import sys
 
-from args import parse_task_args
+from transformers import TrainingArguments
+from args import (
+    parse_args,
+    print_args,
+    TaskArguments,
+    InstanceArguments,
+    DistributedArguments,
+    DeepSpeedArguments,
+)
 from config import get_accelerate_config, save_temp_config
 
 
 def main():
     # Parse args
-    args = parse_task_args()
+    args = parse_args(TaskArguments, InstanceArguments, DistributedArguments, DeepSpeedArguments, TrainingArguments)
+
+    print_args(args)
 
     accelerate_config = get_accelerate_config(
         task=args.task.task,

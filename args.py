@@ -11,7 +11,7 @@ from transformers import (
 )
 from peft import LoraConfig
 from dataclasses import dataclass, field
-from typing import List, Union, Tuple
+from typing import Union, List, Dict, Tuple, Iterable
 from utils import find_all_linear_names, get_local_rank
 from trl import SFTTrainer
 
@@ -76,9 +76,13 @@ class InstanceArguments(Arguments):
     instance_type: str = field(default="ml.p4d.24xlarge", metadata={"help": "Instance type used for the task"})
     volume_size: int = field(default=300, metadata={"help": "The size of the EBS volume in GB"})
     instance_count: int = field(default=1, metadata={"help": "The number of instances used for task"})
-    max_run: int = field(
-        default=2 * 24 * 60 * 60,
-        metadata={"help": "Maximum runtime in seconds (days * hours * minutes * seconds)"},
+    max_run: Union[int, None] = field(
+        default=None,
+        metadata={"help": "Maximum runtime in seconds"},
+    )
+    max_wait: Union[int, None] = field(
+        default=None,
+        metadata={"help": "Maximum wait time in seconds"},
     )
     use_spot_instances: bool = field(
         default=False, metadata={"help": "Whether to use spot instances for cheaper training"}
@@ -217,6 +221,7 @@ class SFTArguments(Arguments):
 class MachineLearningArguments:
     task: TaskArguments
     hf: HuggingFaceHubArguments
+    instance: InstanceArguments
     dist: DistributedArguments
     trainer: TrainingArguments
     sft: SFTArguments
@@ -226,7 +231,20 @@ class MachineLearningArguments:
     nargs: list
 
     def __iter__(self):
-        return iter([self.task, self.hf, self.dist, self.trainer, self.sft, self.ds, self.lora, self.bnb, self.nargs])
+        return iter(
+            [
+                self.task,
+                self.hf,
+                self.instance,
+                self.dist,
+                self.trainer,
+                self.sft,
+                self.ds,
+                self.lora,
+                self.bnb,
+                self.nargs,
+            ]
+        )
 
     def lora_config(self, model) -> LoraConfig:
         return self.lora.config(model)
@@ -272,7 +290,7 @@ class MachineLearningArguments:
 
     def __post_init__(self):
         # Check GPU compatibility with bfloat16
-        if self.trainer.fp16:
+        if self.trainer and self.trainer.fp16:
             major, _ = torch.cuda.get_device_capability()
             if major >= 8:
                 print("\033[93m", end="")
@@ -280,56 +298,73 @@ class MachineLearningArguments:
                 print("\033[0m", end="")
 
 
-def parse_instance_args() -> Tuple[TaskArguments, InstanceArguments]:
-    parser = HfArgumentParser((TaskArguments, InstanceArguments))
-    task, inst, _ = parser.parse_args_into_dataclasses(args=sys.argv[1:], return_remaining_strings=True)
-    return task, inst
-
-
-def parse_task_args() -> MachineLearningArguments:
-    config = yaml.load(open("ml.yaml", "r"), Loader=yaml.FullLoader)
-
-    default_args = [
-        *["--output_dir", "./results"],
-    ]
-
-    for k, v in config.items():
+def object_to_args(obj):
+    args = []
+    for k, v in obj.items():
         if v is None:
             continue
         # if it is a list add each arg sepatly
         if isinstance(v, list):
-            default_args += [f"--{k}"]
+            args += [f"--{k}"]
             for val in v:
-                default_args += [f"{val}"]
+                args += [f"{val}"]
         else:
-            default_args += [f"--{k}", f"{v}"]
+            args += [f"--{k}", f"{v}"]
+    return args
 
-    parser = HfArgumentParser(
-        (
-            TaskArguments,
-            HuggingFaceHubArguments,
-            DistributedArguments,
-            TrainingArguments,
-            SFTArguments,
-            DeepSpeedArguments,
-            LoraArguments,
-            BitsAndBytesArguments,
-        )
+
+arg_classes = [
+    TaskArguments,
+    HuggingFaceHubArguments,
+    InstanceArguments,
+    DistributedArguments,
+    TrainingArguments,
+    SFTArguments,
+    DeepSpeedArguments,
+    LoraArguments,
+    BitsAndBytesArguments,
+]
+
+arg_keywords = {
+    "task": TaskArguments,
+    "hf": HuggingFaceHubArguments,
+    "instance": InstanceArguments,
+    "dist": DistributedArguments,
+    "trainer": TrainingArguments,
+    "sft": SFTArguments,
+    "ds": DeepSpeedArguments,
+    "lora": LoraArguments,
+    "bnb": BitsAndBytesArguments,
+    "nargs": list,
+}
+
+
+def parse_args(*classes) -> MachineLearningArguments:
+    config = yaml.load(open("ml.yaml", "r"), Loader=yaml.FullLoader)
+    config_args = object_to_args(config)
+
+    parser = HfArgumentParser(classes)
+
+    arg_class_objs = parser.parse_args_into_dataclasses(
+        args=[*config_args, *sys.argv[1:]], return_remaining_strings=True
     )
 
-    task, hf, dist, trainer, sft, ds, lora, bnb, nargs = parser.parse_args_into_dataclasses(
-        args=[*default_args, *sys.argv[1:]],
-        return_remaining_strings=True,
-    )
+    kwargs = {}
+    for k in arg_keywords.keys():
+        kwargs[k] = None
+    for arg_class_obj in arg_class_objs:
+        for k, v in arg_keywords.items():
+            if isinstance(arg_class_obj, v):
+                kwargs[k] = arg_class_obj
 
-    test = MachineLearningArguments(task, hf, dist, trainer, sft, ds, lora, bnb, nargs)
-
-    return test
+    return MachineLearningArguments(**kwargs)
 
 
 def print_args(args: MachineLearningArguments):
-    for arg_set in args:
-        if not isinstance(arg_set, list):
-            print(arg_set.__class__.__name__, arg_set.__dict__)
+    for arg_class in args:
+        if not arg_class:
+            continue
+        if not isinstance(arg_class, list):
+            print(arg_class.__class__.__name__, arg_class.__dict__)
         else:
-            print("UnknownArguments", arg_set)
+            print("UnknownArguments", arg_class)

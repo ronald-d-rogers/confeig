@@ -2,7 +2,7 @@ import json
 from functools import partial
 from transformers import AutoTokenizer
 from datasets import load_dataset
-from args import parse_task_args
+from args import parse_args, print_args, TaskArguments, HuggingFaceHubArguments, SFTArguments
 
 
 def create_prompt_formats(sample):
@@ -65,8 +65,10 @@ def preprocess_dataset(tokenizer: AutoTokenizer, dataset, max_seq_length=2048, s
     dataset = dataset.filter(lambda sample: len(sample["input_ids"]) < max_seq_length)
 
     report = {
-        "max_seq_length": max([len(sample["input_ids"]) for sample in dataset]),
+        "max_seq_length": max([len(sample["input_ids"]) for split in dataset for sample in dataset[split]]),
     }
+
+    print(dataset)
 
     # Shuffle dataset
     dataset = dataset.shuffle(seed=seed)
@@ -87,21 +89,26 @@ def prepare_tokenizer(tokenizer: AutoTokenizer):
     #     }
     # )
 
+    special_tokens = ["<START_TEXT>", "<END_TEXT>", "<START_REPR>", "<END_REPR>"]
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"  # Fix weird overflow issue with fp15 training
+
+    tokenizer.add_tokens(special_tokens, special_tokens=True)
 
     return tokenizer
 
 
 def main():
     # Parse args
-    args = parse_task_args()
+    args = parse_args(TaskArguments, HuggingFaceHubArguments, SFTArguments)
+
+    print_args(args)
 
     tokenizer = args.tokenizer()
     tokenizer = prepare_tokenizer(tokenizer)
 
     ## Preprocess dataset
-    dataset = load_dataset("gsm8k", "main", split="train")
+    dataset = load_dataset("gsm8k", "main")
 
     if args.task.clear_data_cache:
         dataset.cleanup_cache_files()

@@ -8,6 +8,7 @@ pretrained_model_name_or_path: meta-llama/Llama-2-7b-hf
 
 # Instances type used for the training job
 instance_type: ml.g5.2xlarge
+# instance_type: ml.p4d.24xlarge
 
 # The size of the EBS volume in GB
 volume_size: 256
@@ -15,10 +16,14 @@ volume_size: 256
 # The number of instances used for training
 instance_count: 1
 
-# Maximum runtime in seconds (days * hours * minutes * seconds)
+# How long to allow the job to run (in seconds)
 max_run: 172800 # 2 * 24 * 60 * 60 (2 days)
 
+# Whether to use spot instances to reduce costs
 use_spot_instances: True
+
+# How long to wait for a spot instance to become available (in seconds)
+max_wait: 172801
 
 ################################################################################
 # Distributed training parameters
@@ -28,11 +33,13 @@ use_spot_instances: True
 enable_distributed: False
 
 # Number of GPUs to use
-num_processes: 4
+num_processes: 8
 
 ################################################################################
 # Trainer parameters
 ################################################################################
+
+epoch: 4
 
 # Output directory where the model predictions and checkpoints will be stored
 output_dir: ./results
@@ -82,10 +89,10 @@ warmup_ratio: 0.03
 group_by_length: True
 
 # Save checkpoint every X updates steps
-save_steps: .1
+save_steps: .05
 
 # Log every X updates steps
-logging_steps: .1
+logging_steps: .05
 
 report_to: tensorboard
 
@@ -96,7 +103,7 @@ report_to: tensorboard
 # Whether to use DeepSpeed
 enable_deepspeed: False
 
-zero_stage: 
+zero_stage: 3
 
 offload: False
 
