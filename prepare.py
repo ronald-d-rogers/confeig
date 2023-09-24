@@ -90,23 +90,23 @@ def main():
 
     print_args(args)
 
-    # tokenizer = args.tokenizer()
-    # tokenizer = prepare_tokenizer(tokenizer)
+    tokenizer = args.tokenizer()
+    tokenizer = prepare_tokenizer(tokenizer)
 
-    # ## Preprocess dataset
-    # dataset = load_dataset("gsm8k", "main")
+    ## Preprocess dataset
+    dataset = load_dataset("gsm8k", "main")
 
-    # if args.task.clear_data_cache:
-    #     dataset.cleanup_cache_files()
+    if args.task.clear_data_cache:
+        dataset.cleanup_cache_files()
 
-    # dataset, report = preprocess_dataset(tokenizer, dataset, args.sft.max_seq_length)
+    dataset, report = preprocess_dataset(tokenizer, dataset, args.sft.max_seq_length)
 
-    # print("Dataset report:", report)
+    print("Dataset report:", report)
 
-    # dataset.save_to_disk("./prepared")
+    dataset.save_to_disk("./prepared")
 
-    # with open("./prepared/report.json", "w") as f:
-    #     json.dump(report, f)
+    with open("./prepared/report.json", "w") as f:
+        json.dump(report, f)
 
 
 if __name__ == "__main__":
