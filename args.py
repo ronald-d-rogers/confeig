@@ -32,7 +32,7 @@ class Arguments:
 class TaskArguments(Arguments):
     # should only be train or eval
     project: str = field(default="huggingface", metadata={"help": "Project name"})
-    config: str = field(default=None, metadata={"help": "Config section in the config file to use for this task"})
+    config: list[str] = field(default=None, metadata={"help": "Config section in the config file to use for this task"})
     tmp_dir: str = field(default=".tmp", metadata={"help": "Temporary directory"})
     save_dir: str = field(default=".", metadata={"help": "Save directory"})
     clear_data_cache: bool = field(default=False, metadata={"help": "Clear data cache"})

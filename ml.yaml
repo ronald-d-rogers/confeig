@@ -2,7 +2,7 @@ project: lora-cutoff
 
 config: 
   - llama-2-7b
-  - full-parameter
+  - lora
 
 llama-2-7b:
   pretrained_model_name_or_path: meta-llama/Llama-2-7b-hf
@@ -128,6 +128,8 @@ lora:
   # Whether to use spot instances to reduce costs
   use_spot_instances: True
 
+  max_run: 7200
+
   # How long to wait for a spot instance to become available (in seconds)
   max_wait: 9800
 
@@ -156,14 +158,11 @@ lora:
   # Initial learning rate (AdamW optimizer)
   learning_rate: 3e-5
 
-  # Save checkpoint every X steps
-  save_steps: 3
+  eval_strategy: steps:
 
-  # Evaluate every X steps
-  eval_steps: 3
-
-  # Log every X steps
-  logging_steps: 1
+  eval_steps: 0.1
+  
+  logging_steps: 0.1
 
   ################################################################################
   # LoRA parameters

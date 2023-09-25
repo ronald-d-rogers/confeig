@@ -72,7 +72,7 @@ def main():
         model=model,
         tokenizer=tokenizer,
         train_dataset=dataset["train"],
-        eval_dataset=dataset["validation"] if "validation" in dataset else None,
+        eval_dataset=dataset["test"] if "test" in dataset else None,
         dataset_text_field="text",
         # compute_metrics=compute_metrics,
     )
