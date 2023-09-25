@@ -27,6 +27,7 @@ defaults:
 
   # Enable fp16/bf16 training (set bf16 to True with an A100)
   fp16: False
+
   bf16: True
 
   # Maximum gradient normal (gradient clipping)
@@ -108,11 +109,11 @@ full-parameter:
   # Initial learning rate (AdamW optimizer)
   learning_rate: 1e-5
 
+  # When to evaluate the model (steps or epoch)
+  evaluation_strategy: epoch
+
   # Save checkpoint every X steps
   save_steps: 3
-
-  # Evaluate every X steps
-  eval_steps: 3
 
   # Log every X steps
   logging_steps: 1
@@ -158,7 +159,8 @@ lora:
   # Initial learning rate (AdamW optimizer)
   learning_rate: 3e-5
 
-  eval_strategy: steps:
+  # When to evaluate the model (steps or epoch)
+  evaluation_strategy: steps
 
   eval_steps: 0.1
   

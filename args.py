@@ -393,5 +393,5 @@ def print_args(args: MachineLearningArguments, unknown=False):
             continue
         if not isinstance(arg_class, list):
             print(arg_class.__class__.__name__, arg_class.__dict__)
-        elif unknown:
+        if isinstance(arg_class, list) and unknown:
             print("UnknownArguments", arg_class)
