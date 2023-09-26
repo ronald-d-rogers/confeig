@@ -1,9 +1,6 @@
 import builtins
 import os
 
-# import math
-# import torch
-# from torch.functional import F
 from datasets import load_from_disk
 
 from utils import get_local_rank, get_local_rank
@@ -61,12 +58,6 @@ def main():
     model.config.use_cache = False
     model.config.pretraining_tp = 1
 
-    # def compute_metrics(pred):
-    #     logits = torch.from_numpy(pred.predictions)
-    #     labels = torch.from_numpy(pred.label_ids)
-    #     loss = F.cross_entropy(logits.view(-1, tokenizer.vocab_size), labels.view(-1))
-    #     return {"perplexity": math.exp(loss)}
-
     # Set supervised fine-tuning parameters
     trainer = args.sft_trainer(
         model=model,
@@ -74,7 +65,6 @@ def main():
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"] if "test" in dataset else None,
         dataset_text_field="text",
-        # compute_metrics=compute_metrics,
     )
 
     # Train model

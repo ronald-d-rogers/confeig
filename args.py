@@ -2,6 +2,7 @@ import sys
 import yaml
 import builtins
 import torch
+from urllib.parse import urlparse
 from transformers import (
     HfArgumentParser,
     TrainingArguments,
@@ -11,9 +12,10 @@ from transformers import (
 )
 from peft import LoraConfig
 from dataclasses import dataclass, field
-from typing import Union, List, Dict, Tuple, Iterable
+from typing import Union
 from utils import find_all_linear_names, get_local_rank
 from trl import SFTTrainer
+from sagemaker import TrainingInput
 
 
 def print(*args, **kwargs):
@@ -87,6 +89,29 @@ class InstanceArguments(Arguments):
     use_spot_instances: bool = field(
         default=False, metadata={"help": "Whether to use spot instances for cheaper training"}
     )
+    input: Union[list[str], None] = field(
+        default=None,
+        metadata={"help": "A list of input data channels"},
+    )
+    default_channel: str = field(
+        default="data",
+        metadata={"help": "The default channel name to use if a channel is not specified in an input uri"},
+    )
+
+    def inputs(self) -> dict[str, TrainingInput]:
+        val = {}
+        for uri in self.input:
+            # split the url into url params and get the input_mode and channel params
+            parsed_url = urlparse(uri)
+            params = dict(kv.split("=") for kv in parsed_url.query.split("&"))
+            s3_data = parsed_url.geturl().split("?")[0]
+            channel = params.get("channel", self.default_channel)
+            input_mode = params.get("input_mode", "File")
+            val[channel] = TrainingInput(
+                s3_data=s3_data,
+                input_mode=input_mode,
+            )
+        return val
 
 
 @dataclass

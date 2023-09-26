@@ -2,6 +2,7 @@ project: lora-cutoff
 
 config: 
   - llama-2-7b
+  - checkpoint-3
   - lora
 
 llama-2-7b:
@@ -118,6 +119,66 @@ full-parameter:
   # Log every X steps
   logging_steps: 1
 
+checkpoint-3:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-3/?channel=model&input_mode=FastFile
+
+checkpoint-6:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-6/?channel=model&input_mode=FastFile
+
+checkpoint-9:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-9/?channel=model&input_mode=FastFile
+
+checkpoint-12:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-12/?channel=model&input_mode=FastFile
+
+checkpoint-15:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-15/?channel=model&input_mode=FastFile
+
+checkpoint-18:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-18/?channel=model&input_mode=FastFile
+
+checkpoint-21:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-21/?channel=model&input_mode=FastFile
+
+checkpoint-24:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-24/?channel=model&input_mode=FastFile
+
+checkpoint-27:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-27/?channel=model&input_mode=FastFile
+
+checkpoint-30:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-30/?channel=model&input_mode=FastFile
+
+checkpoint-33:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-33/?channel=model&input_mode=FastFile
+
+checkpoint-36:
+  pretrained_model_name_or_path: /opt/ml/input/data/model
+  input:
+    - s3://sagemaker-us-east-1-283314153768/lora-cutoff-2023-09-25-01-32-10-781/output/model/checkpoint-36/?channel=model&input_mode=FastFile
+
 lora:
   ################################################################################
   # Instance parameters
@@ -142,13 +203,13 @@ lora:
   num_train_epochs: 1
 
   # Batch size per GPU for training
-  per_device_train_batch_size: 4
+  per_device_train_batch_size: 8
 
   # Batch size per GPU for evaluation
-  per_device_eval_batch_size: 4
+  per_device_eval_batch_size: 8
 
   # Number of update steps to accumulate the gradients for
-  gradient_accumulation_steps: 2
+  gradient_accumulation_steps: 4
 
   # Enable gradient checkpointing
   gradient_checkpointing: True
@@ -162,9 +223,9 @@ lora:
   # When to evaluate the model (steps or epoch)
   evaluation_strategy: steps
 
-  eval_steps: 0.1
+  eval_steps: 0.25
   
-  logging_steps: 0.1
+  logging_steps: 0.025
 
   ################################################################################
   # LoRA parameters

@@ -103,7 +103,7 @@ def main():
     )
 
     # starting the train job with our uploaded datasets as input
-    huggingface_estimator.fit(wait=True)
+    huggingface_estimator.fit(inputs=args.instance.inputs(), wait=True)
 
 
 if __name__ == "__main__":
