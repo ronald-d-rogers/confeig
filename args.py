@@ -333,6 +333,9 @@ def object_to_args(obj):
             args += [f"--{k}"]
             for val in v:
                 args += [f"{val}"]
+        elif isinstance(v, bool):
+            if v:
+                args += [f"--{k}", "True"]
         else:
             args += [f"--{k}", f"{v}"]
     return args
